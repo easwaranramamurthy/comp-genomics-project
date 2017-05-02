@@ -1,0 +1,1 @@
+cmd = /home/eramamur/genomics_project/GM_JUNB_run_4/group_motifs//Group16/seqs.bed hg19 /home/eramamur/genomics_project/GM_JUNB_run_4/group_motifs//Group16 -p 1 -size given -len 6,8,10,12 -noknown -mset vertebrates
