@@ -17,13 +17,8 @@ def generate_wildcard_kmers(kmer, max_consec_wildcard):
     return wc_kmers
 
 
-def kmerize_fa(input_fasta, k, max_consec_wildcard):
+def kmerize_fa(input_fasta, k, max_consec_wildcard, kmer_vocab_file):
     kmer_vocab=set()
-                 
-    for kmer in kmer_vocab:
-        if not len(kmer) == k:
-            sys.exit("Input kmer vocab should contain kmers of length k")
-    
     all_kmer_counts = dict()
     
     numSeqs = 0
@@ -34,9 +29,21 @@ def kmerize_fa(input_fasta, k, max_consec_wildcard):
         numSeqs+=1
     
     
+    if kmer_vocab_file is not None:
+        kmer_vocab = set()
+        with open(kmer_vocab_file, 'r') as kfile:
+            for line in kfile:
+                kmer_vocab.add(line.strip())
+        for kmer in kmer_vocab:
+            if not len(kmer) == k:
+                sys.exit("Input kmer vocab should contain kmers of length k")
+    
     kmer_vocab = list(kmer_vocab)
+    
+
     design_matrix = np.zeros((numSeqs, len(kmer_vocab)), dtype=np.int)
     
+    record_ids = []
     i=0
     for record_id in all_kmer_counts:
         kmer_counts = all_kmer_counts[record_id]
@@ -44,9 +51,10 @@ def kmerize_fa(input_fasta, k, max_consec_wildcard):
             if kmer in kmer_counts:
                 count = kmer_counts[kmer]
                 design_matrix[i][j] = count            
+        record_ids.append(record_id)
         i+=1 
     
-    return design_matrix, kmer_vocab
+    return design_matrix, kmer_vocab, record_ids
     
 def kmerize_seq(seq, k, max_consec_wildcard):
     if 0<max_consec_wildcard and max_consec_wildcard>k:
@@ -66,19 +74,33 @@ def kmerize_seq(seq, k, max_consec_wildcard):
             kmer_counts[wc_kmer] = kmer_counts[wc_kmer] + 1
 
     return kmer_counts
-                 
+
+def write_output(design_matrix, kmer_vocab, record_ids, outfile):
+    outf = open(outfile, 'w')
+    header = ["seq_id"] + kmer_vocab
+    outf.write("\t".join(header))
+    outf.write("\n")
+    
+    for i in xrange(len(record_ids)):
+        line = [record_ids[i]] + list(design_matrix[i][:])
+        outf.write("\t".join([str(val) for val in line]))
+        outf.write("\n")
+    
+    
+    outf.close()
+    
+    
+
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='Kmerizer for Fasta file')
     parser.add_argument('-i', '--fasta', help='fasta file input', required=True)
     parser.add_argument('-k', '--kmer-length', type=int, help='length of k-mer desired', required=True)
     parser.add_argument('-m', '--max-consec-wc', type=int, help='maximum continuous wildcards', required=True)
+    parser.add_argument('-v', '--kmer-vocab-file', help='file containing kmer vocabulary', required=False)
+    parser.add_argument('-o', '--design-matrix-out', help='file to output design matrix in', required=True)
     
     args = parser.parse_args()
-    design_matrix, kmer_vocab = kmerize_fa(args.fasta, args.kmer_length, args.max_consec_wc)
+    design_matrix, kmer_vocab, record_ids = kmerize_fa(args.fasta, args.kmer_length, args.max_consec_wc, args.kmer_vocab_file)
     
-    np.savetxt('design_matrix.txt',design_matrix, delimiter = "\t")
-    
-    with open('kmer_vocab.txt', 'w') as vocab_out:
-        for word in kmer_vocab:
-            vocab_out.write(word+"\n")
+    write_output(design_matrix, kmer_vocab, record_ids, args.design_matrix_out)
     
