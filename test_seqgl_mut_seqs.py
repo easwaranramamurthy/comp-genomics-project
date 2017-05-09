@@ -1,5 +1,6 @@
 from Bio import SeqIO
 import sys
+from multiprocessing import Pool
 
 def generate_wildcard_kmers(kmer):
 	wc_kmers = []
@@ -27,10 +28,11 @@ def predict_label_given_seq(seq):
 				score+=weights[wc_kmer]
 
 	return 1 if score>0 else -1
-
-def aggregateCountsForPlot(record, orig_seq_id):
-	return None
 	
+def predict_label_and_print(record):
+	mut_seq_label = predict_label_given_seq(record.seq)
+	print record.id+"\t"+str(mut_seq_label)
+
 if __name__=="__main__":
 	w_file = sys.argv[1]
 	orig_seqs_file = sys.argv[2]
@@ -44,7 +46,6 @@ if __name__=="__main__":
 			weight = float(splits[1])
 			weights[kmer] = weight
 		
-	print "Predicting labels for orig. sequences"
 	orig_seq_labels = dict()
 	orig_seq_label_file = open("seql_orig_seq_labels.txt", 'w')
 	with open(orig_seqs_file, "rU") as handle:
@@ -53,12 +54,10 @@ if __name__=="__main__":
 			orig_seq_label_file.write(record.id+"\t"+str(orig_seq_label)+"\n")
 	orig_seq_label_file.close()		
 	
-	print "Predicting labels for mut. sequences"
-	
-	mut_seq_label_file = open("seql_mut_seq_labels.txt", 'w')	
+	pool = Pool(32)
+	records = []
 	with open(mut_seqs_file, "rU") as handle:
 		for record in SeqIO.parse(handle, "fasta"):
-			mut_seq_label = predict_label_given_seq(record.seq)
-			mut_seq_label_file.write(record.id+"\t"+str(mut_seq_label)+"\n")
-			
-	mut_seq_label_file.close()			
+			records.append(record)
+	
+	pool.map(predict_label_and_print, records)
