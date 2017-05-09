@@ -28,17 +28,17 @@ def kmerize_fa(input_fasta, k, max_consec_wildcard, kmer_vocab_file):
         kmer_vocab.update(kmer_counts.keys())
         numSeqs+=1
     
+    kmer_vocab = list(kmer_vocab)
     
     if kmer_vocab_file is not None:
-        kmer_vocab = set()
+        kmer_vocab = []
         with open(kmer_vocab_file, 'r') as kfile:
             for line in kfile:
-                kmer_vocab.add(line.strip())
+                kmer_vocab.append(line.strip())
         for kmer in kmer_vocab:
             if not len(kmer) == k:
                 sys.exit("Input kmer vocab should contain kmers of length k")
     
-    kmer_vocab = list(kmer_vocab)
     
 
     design_matrix = np.zeros((numSeqs, len(kmer_vocab)), dtype=np.int)
