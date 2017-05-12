@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import copy
 
 if __name__=="__main__":
-	np.random.seed(17)
+	np.random.seed(23)
 	input_fasta = sys.argv[1]
 	mut_freq = float(sys.argv[2])
 	out_file = sys.argv[3]
